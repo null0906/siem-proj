@@ -24,9 +24,10 @@ export function SeverityPill({ severity }: { severity: string }) {
         color: text,
         textAlign: "center",
         fontFamily: "var(--font-mono)",
-        fontSize: 9,
+        fontSize: "var(--fs-xs)",
         fontWeight: 500,
         letterSpacing: "0.07em",
+        fontVariantNumeric: "tabular-nums",
         lineHeight: 1.25,
         textTransform: "uppercase",
       }}

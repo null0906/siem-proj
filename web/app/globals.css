@@ -15,11 +15,26 @@
   --surface-panel: var(--cy-panel);
   --surface-raised: #0f1e30;
   --border: var(--cy-border);
-  --text-primary: var(--cy-text);
-  --text-secondary: var(--cy-text-sec);
-  --text-tertiary: var(--cy-muted);
-  --font-mono: "JetBrains Mono", monospace;
-  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --text-title: #eef4fb;
+  --text-primary: #cdd8e6;
+  --text-secondary: #8595ab;
+  --text-muted: #54657d;
+  --text-tertiary: var(--text-muted);
+  --font-sans: "Inter Variable", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
+  --fs-caption: 11px;
+  --fs-label: 12px;
+  --fs-body: 14px;
+  --fs-title: 15px;
+  --fs-h1: 26px;
+  --fs-metric: 38px;
+  --fs-2xs: var(--fs-caption);
+  --fs-xs: var(--fs-caption);
+  --fs-sm: var(--fs-body);
+  --fs-base: var(--fs-body);
+  --fs-md: var(--fs-title);
+  --fs-lg: 18px;
+  --fs-metric-sm: 30px;
 }
 
 * {
@@ -36,8 +51,10 @@ body {
   background: var(--cy-bg) !important;
   color: var(--text-primary);
   font-family: var(--font-sans);
-  font-size: 13px;
+  font-size: var(--fs-body);
   line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "cv05" 1;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -64,6 +81,13 @@ textarea {
 
 .mono {
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "cv05" 1;
 }
 
 @keyframes pulse-red {
@@ -106,14 +130,17 @@ textarea {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "cv05" 1;
   pointer-events: none;
 }
 
 .chart-center-kicker {
-  font-size: 8px;
-  letter-spacing: 0.12em;
-  color: var(--cy-muted);
+  font-family: var(--font-sans);
+  font-size: var(--fs-2xs);
+  letter-spacing: 0;
+  color: var(--text-secondary);
 }
 
 .chart-legend-list,
@@ -129,8 +156,8 @@ textarea {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  font-family: var(--font-mono);
-  font-size: 10px;
+  font-family: var(--font-sans);
+  font-size: var(--fs-sm);
   color: #8892b0;
 }
 
@@ -155,8 +182,8 @@ textarea {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-family: var(--font-mono);
-  font-size: 10px;
+  font-family: var(--font-sans);
+  font-size: var(--fs-sm);
   color: #8892b0;
 }
 

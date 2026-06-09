@@ -27,10 +27,10 @@ const (
 )
 
 type Watcher struct {
-	db          *pgxpool.Pool
-	watchDir    string
+	db           *pgxpool.Pool
+	watchDir     string
 	processedDir string
-	log         *slog.Logger
+	log          *slog.Logger
 }
 
 func New(db *pgxpool.Pool, watchDir string) *Watcher {
@@ -124,6 +124,30 @@ func (w *Watcher) processFile(ctx context.Context, fullPath, filename string) er
 	}
 
 	w.emitPipelineEvent(ctx, "parsed", filename)
+
+	if identityParser := parsers.ResolveIdentity(filename, headers); identityParser != nil {
+		users, parseErr := identityParser.ParseIdentity(headers, rows)
+		if parseErr != nil {
+			w.updateSourceFile(ctx, sfID, models.ParseStatusFailed, len(rows), identityParser.VendorName(), parseErr.Error())
+			return nil
+		}
+
+		w.emitPipelineEvent(ctx, "normalized", filename)
+		if err := w.insertIdentityUsers(ctx, sfID, users); err != nil {
+			w.updateSourceFile(ctx, sfID, models.ParseStatusPartial, len(rows), identityParser.VendorName(), err.Error())
+			return nil
+		}
+
+		w.updateSourceFile(ctx, sfID, models.ParseStatusSuccess, len(rows), identityParser.VendorName(), "")
+		w.emitPipelineEvent(ctx, "indexed", filename)
+		w.log.Info("identity file ingested",
+			"file", filename,
+			"vendor", identityParser.VendorName(),
+			"users", len(users),
+		)
+		w.moveFile(fullPath, filename)
+		return nil
+	}
 
 	parser := parsers.Resolve(filename, headers)
 	if parser == nil {
@@ -227,6 +251,36 @@ func (w *Watcher) insertFindings(ctx context.Context, sfID uuid.UUID, findings [
 	for range findings {
 		if _, err := br.Exec(); err != nil {
 			return fmt.Errorf("batch insert: %w", err)
+		}
+	}
+	return nil
+}
+
+func (w *Watcher) insertIdentityUsers(ctx context.Context, sfID uuid.UUID, users []models.IdentityUser) error {
+	batch := &pgx.Batch{}
+	for _, user := range users {
+		batch.Queue(
+			`INSERT INTO identity_users
+			 (id, user_email, display_name, mfa_enabled, account_status, last_login,
+			  is_privileged, groups, sso_apps_count, created_at, source_file_id)
+			 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+			 ON CONFLICT (user_email, source_file_id) DO UPDATE SET
+			  display_name = EXCLUDED.display_name,
+			  mfa_enabled = EXCLUDED.mfa_enabled,
+			  account_status = EXCLUDED.account_status,
+			  last_login = EXCLUDED.last_login,
+			  is_privileged = EXCLUDED.is_privileged,
+			  groups = EXCLUDED.groups,
+			  sso_apps_count = EXCLUDED.sso_apps_count`,
+			user.ID, user.UserEmail, user.DisplayName, user.MFAEnabled, user.AccountStatus,
+			user.LastLogin, user.IsPrivileged, user.Groups, user.SSOAppsCount, user.CreatedAt, sfID,
+		)
+	}
+	br := w.db.SendBatch(ctx, batch)
+	defer br.Close()
+	for range users {
+		if _, err := br.Exec(); err != nil {
+			return fmt.Errorf("identity batch insert: %w", err)
 		}
 	}
 	return nil

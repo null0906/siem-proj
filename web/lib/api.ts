@@ -72,6 +72,37 @@ export interface FindingsSummary {
   last_ingested_at?: string | null;
 }
 
+export interface IdentityUser {
+  id: string;
+  user_email: string;
+  display_name: string;
+  mfa_enabled: boolean;
+  account_status: "active" | "suspended" | "dormant";
+  last_login: string;
+  is_privileged: boolean;
+  groups: string;
+  sso_apps_count: number;
+  created_at: string;
+  source_file_id: string | null;
+}
+
+export interface IdentitySummary {
+  total_users: number;
+  mfa_coverage: number;
+  dormant_accounts: number;
+  privileged_accounts: number;
+  accounts_without_mfa: number;
+  mfa_enabled: number;
+  mfa_disabled: number;
+  by_status: {
+    active: number;
+    suspended: number;
+    dormant: number;
+  };
+  login_trend: Array<{ date: string; count: number }>;
+  risky_users: IdentityUser[];
+}
+
 export interface Finding {
   id: string;
   source_tool: string;
@@ -218,6 +249,7 @@ export const apiClient = {
         "/api/dashboard",
       ])
     ),
+  getIdentitySummary: () => request<IdentitySummary>("/api/identity/summary"),
   getPipeline: async () =>
     normalizePipeline(
       await requestWithFallback<PipelineStatus | LegacyPipelineStatus>([

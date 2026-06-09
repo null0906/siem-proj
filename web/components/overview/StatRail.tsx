@@ -8,12 +8,10 @@ function StatBlock({
   label,
   value,
   color,
-  mono = true,
 }: {
   label: string;
   value: string | number;
   color?: string;
-  mono?: boolean;
 }) {
   return (
     <div
@@ -24,10 +22,10 @@ function StatBlock({
     >
       <div
         style={{
-          fontFamily: "'JetBrains Mono', monospace",
-          fontSize: 9,
-          color: "#444",
-          letterSpacing: "0.1em",
+          fontFamily: "var(--font-sans)",
+          fontSize: "var(--fs-label)",
+          color: "var(--text-secondary)",
+          letterSpacing: "0.04em",
           textTransform: "uppercase",
           marginBottom: 4,
         }}
@@ -36,9 +34,11 @@ function StatBlock({
       </div>
       <div
         style={{
-          fontFamily: mono ? "'JetBrains Mono', monospace" : "Inter, sans-serif",
-          fontSize: 22,
+          fontFamily: "var(--font-sans)",
+          fontSize: "var(--fs-metric-sm)",
           fontWeight: 600,
+          fontVariantNumeric: "tabular-nums",
+          fontFeatureSettings: "'tnum' 1, 'cv05' 1",
           color: color ?? "#d0d0d0",
           lineHeight: 1,
         }}
@@ -73,19 +73,19 @@ function SeverityRow({
       >
         <span
           style={{
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 10,
+            fontFamily: "var(--font-sans)",
+            fontSize: "var(--fs-xs)",
             color,
-            textTransform: "uppercase",
-            letterSpacing: "0.06em",
+            letterSpacing: "0.04em",
           }}
         >
           {label}
         </span>
         <span
           style={{
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 11,
+            fontFamily: "var(--font-sans)",
+            fontSize: "var(--fs-sm)",
+            fontVariantNumeric: "tabular-nums",
             color: count > 0 ? "#aaa" : "#333",
             fontWeight: 500,
           }}
@@ -138,10 +138,10 @@ export function StatRail({ data }: { data?: DashboardSummary }) {
       >
         <h3
           style={{
-            fontFamily: "'Newsreader', Georgia, serif",
-            fontSize: 14,
-            fontWeight: 500,
-            color: "#888",
+            fontFamily: "var(--font-sans)",
+            fontSize: "var(--fs-title)",
+            fontWeight: 600,
+            color: "var(--text-title)",
             margin: 0,
           }}
         >
@@ -168,15 +168,14 @@ export function StatRail({ data }: { data?: DashboardSummary }) {
       <div style={{ padding: "12px 16px 6px", borderTop: "1px solid #1a1a1a" }}>
         <div
           style={{
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 9,
-            color: "#444",
-            letterSpacing: "0.1em",
-            textTransform: "uppercase",
+            fontFamily: "var(--font-sans)",
+            fontSize: "var(--fs-title)",
+            fontWeight: 600,
+            color: "var(--text-title)",
             marginBottom: 8,
           }}
         >
-          By Severity
+          By severity
         </div>
         {severityRows.map(({ key, label, color }) => (
           <SeverityRow
@@ -198,15 +197,14 @@ export function StatRail({ data }: { data?: DashboardSummary }) {
       >
         <div
           style={{
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 9,
-            color: "#444",
-            letterSpacing: "0.1em",
-            textTransform: "uppercase",
+            fontFamily: "var(--font-sans)",
+            fontSize: "var(--fs-title)",
+            fontWeight: 600,
+            color: "var(--text-title)",
             marginBottom: 8,
           }}
         >
-          By Source
+          By source
         </div>
         {data?.by_source_tool &&
           Object.entries(data.by_source_tool).map(([tool, count]) => (
@@ -220,8 +218,8 @@ export function StatRail({ data }: { data?: DashboardSummary }) {
             >
               <span
                 style={{
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: 10,
+                  fontFamily: "var(--font-sans)",
+                  fontSize: "var(--fs-sm)",
                   color: "#555",
                 }}
               >
@@ -229,8 +227,9 @@ export function StatRail({ data }: { data?: DashboardSummary }) {
               </span>
               <span
                 style={{
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: 10,
+                  fontFamily: "var(--font-sans)",
+                  fontSize: "var(--fs-sm)",
+                  fontVariantNumeric: "tabular-nums",
                   color: "#888",
                   fontWeight: 500,
                 }}

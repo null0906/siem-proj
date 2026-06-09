@@ -49,7 +49,7 @@ export default function SourceDonut({
           options={options}
         />
         <div className="chart-center-label">
-          <span style={{ fontSize: 18, fontWeight: 500 }}>{totalIndexed}</span>
+          <span style={{ fontSize: "var(--fs-metric-sm)", fontWeight: 600 }}>{totalIndexed}</span>
           <span className="chart-center-kicker">indexed</span>
         </div>
       </div>

@@ -49,10 +49,8 @@ function StatusBadge({ status }: { status: string }) {
         padding: "2px 5px",
         background: color.bg,
         color: color.text,
-        fontFamily: "var(--font-mono)",
-        fontSize: 9,
-        letterSpacing: "0.06em",
-        textTransform: "uppercase",
+        fontFamily: "var(--font-sans)",
+        fontSize: "var(--fs-xs)",
       }}
     >
       {status}
@@ -108,7 +106,7 @@ export default function FindingsPage() {
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
-              fontSize: 13,
+              fontSize: "var(--fs-base)",
               fontWeight: 500,
               color: "var(--text-primary)",
             }}
@@ -121,7 +119,7 @@ export default function FindingsPage() {
         header: "Vendor",
         size: 110,
         cell: (info) => (
-          <span style={{ color: "var(--text-secondary)", fontSize: 12 }}>
+          <span style={{ color: "var(--text-secondary)", fontSize: "var(--fs-sm)", fontFamily: "var(--font-sans)" }}>
             {info.getValue() || "unknown"}
           </span>
         ),
@@ -137,7 +135,8 @@ export default function FindingsPage() {
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
               fontFamily: "var(--font-mono)",
-              fontSize: 11,
+              fontSize: "var(--fs-sm)",
+              fontVariantNumeric: "tabular-nums",
               color: "var(--text-secondary)",
             }}
           >
@@ -157,7 +156,8 @@ export default function FindingsPage() {
           <span
             style={{
               fontFamily: "var(--font-mono)",
-              fontSize: 10,
+              fontSize: "var(--fs-xs)",
+              fontVariantNumeric: "tabular-nums",
               color: "var(--text-tertiary)",
             }}
           >
@@ -193,14 +193,15 @@ export default function FindingsPage() {
           borderBottom: "0.5px solid var(--border)",
         }}
       >
-        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 500, lineHeight: 1.2 }}>
+        <h1 style={{ margin: 0, fontFamily: "var(--font-sans)", fontSize: "var(--fs-h1)", fontWeight: 600, lineHeight: 1.2, color: "var(--text-title)" }}>
           Findings
         </h1>
         <span
           style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 12,
-            color: "var(--text-tertiary)",
+            fontFamily: "var(--font-sans)",
+            fontSize: "var(--fs-body)",
+            fontVariantNumeric: "tabular-nums",
+            color: "var(--text-secondary)",
           }}
         >
           {isLoading ? "..." : `${total} total`}
@@ -268,12 +269,10 @@ export default function FindingsPage() {
                       textAlign: "left",
                       borderBottom: "1px solid var(--border)",
                       background: "var(--surface)",
-                      color: "var(--text-tertiary)",
-                      fontFamily: "var(--font-mono)",
-                      fontSize: 9,
+                      color: "var(--text-secondary)",
+                      fontFamily: "var(--font-sans)",
+                      fontSize: "var(--fs-label)",
                       fontWeight: 500,
-                      letterSpacing: "0.1em",
-                      textTransform: "uppercase",
                     }}
                   >
                     {flexRender(header.column.columnDef.header, header.getContext())}
@@ -358,7 +357,7 @@ export default function FindingsPage() {
         styles={{
           content: { background: "var(--surface)", color: "var(--text-primary)" },
           header: { background: "var(--surface)", borderBottom: "0.5px solid var(--border)" },
-          title: { fontSize: 18, fontWeight: 500, lineHeight: 1.3 },
+          title: { fontFamily: "var(--font-sans)", fontSize: "var(--fs-lg)", fontWeight: 600, lineHeight: 1.3, color: "var(--text-title)" },
           body: { padding: 0 },
         }}
       >
@@ -370,11 +369,11 @@ export default function FindingsPage() {
 
 function FindingDetail({ finding }: { finding: Finding }) {
   const metadata = [
-    ["Vendor", finding.source_vendor || "unknown"],
-    ["Asset", finding.affected_asset || "unknown"],
-    ["First seen", new Date(finding.first_seen).toLocaleString()],
-    ["Last seen", new Date(finding.last_seen).toLocaleString()],
-    ["Source file", finding.source_file_id ?? "unknown"],
+    { label: "Vendor", value: finding.source_vendor || "unknown", mono: false },
+    { label: "Asset", value: finding.affected_asset || "unknown", mono: true },
+    { label: "First seen", value: new Date(finding.first_seen).toLocaleString(), mono: true },
+    { label: "Last seen", value: new Date(finding.last_seen).toLocaleString(), mono: true },
+    { label: "Source file", value: finding.source_file_id ?? "unknown", mono: true },
   ];
 
   return (
@@ -393,7 +392,7 @@ function FindingDetail({ finding }: { finding: Finding }) {
             marginBottom: 18,
           }}
         >
-          {metadata.map(([label, value]) => (
+          {metadata.map(({ label, value, mono }) => (
             <div
               key={label}
               style={{
@@ -406,11 +405,9 @@ function FindingDetail({ finding }: { finding: Finding }) {
               <div
                 style={{
                   marginBottom: 4,
-                  color: "var(--text-tertiary)",
-                  fontFamily: "var(--font-mono)",
-                  fontSize: 9,
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase",
+                  color: "var(--text-secondary)",
+                  fontFamily: "var(--font-sans)",
+                  fontSize: "var(--fs-label)",
                 }}
               >
                 {label}
@@ -419,8 +416,9 @@ function FindingDetail({ finding }: { finding: Finding }) {
                 style={{
                   overflowWrap: "anywhere",
                   color: "var(--text-secondary)",
-                  fontFamily: "var(--font-mono)",
-                  fontSize: 11,
+                  fontFamily: mono ? "var(--font-mono)" : "var(--font-sans)",
+                  fontSize: "var(--fs-sm)",
+                  fontVariantNumeric: "tabular-nums",
                 }}
               >
                 {value}
@@ -432,11 +430,10 @@ function FindingDetail({ finding }: { finding: Finding }) {
         <div
           style={{
             marginBottom: 8,
-            color: "var(--text-tertiary)",
-            fontFamily: "var(--font-mono)",
-            fontSize: 9,
-            letterSpacing: "0.1em",
-            textTransform: "uppercase",
+            color: "var(--text-title)",
+            fontFamily: "var(--font-sans)",
+            fontSize: "var(--fs-title)",
+            fontWeight: 600,
           }}
         >
           Raw payload
@@ -450,7 +447,7 @@ function FindingDetail({ finding }: { finding: Finding }) {
             border: "0.5px solid var(--border)",
             color: "var(--text-secondary)",
             fontFamily: "var(--font-mono)",
-            fontSize: 11,
+            fontSize: "var(--fs-sm)",
             lineHeight: 1.55,
             whiteSpace: "pre-wrap",
           }}

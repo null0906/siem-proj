@@ -33,8 +33,8 @@ function FindingRow({ finding }: { finding: Finding }) {
       <div style={{ minWidth: 0 }}>
         <div
           style={{
-            fontFamily: "'Newsreader', Georgia, serif",
-            fontSize: 13,
+            fontFamily: "var(--font-sans)",
+            fontSize: "var(--fs-base)",
             color: "#d8d8d8",
             fontWeight: 500,
             lineHeight: 1.35,
@@ -57,8 +57,8 @@ function FindingRow({ finding }: { finding: Finding }) {
           <SeverityBadge severity={finding.severity} />
           <span
             style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 10,
+              fontFamily: "var(--font-sans)",
+              fontSize: "var(--fs-sm)",
               color: "#555",
             }}
           >
@@ -67,8 +67,8 @@ function FindingRow({ finding }: { finding: Finding }) {
           {finding.affected_asset && (
             <span
               style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 10,
+                fontFamily: "var(--font-mono)",
+                fontSize: "var(--fs-sm)",
                 color: "#555",
               }}
             >
@@ -79,8 +79,9 @@ function FindingRow({ finding }: { finding: Finding }) {
       </div>
       <div
         style={{
-          fontFamily: "'JetBrains Mono', monospace",
-          fontSize: 10,
+          fontFamily: "var(--font-mono)",
+          fontSize: "var(--fs-xs)",
+          fontVariantNumeric: "tabular-nums",
           color: "#3a3a3a",
           whiteSpace: "nowrap",
           textAlign: "right",
@@ -128,20 +129,20 @@ export function FindingsStream() {
         <h2
           className="serif"
           style={{
-            fontFamily: "'Newsreader', Georgia, serif",
-            fontSize: 16,
-            fontWeight: 500,
-            color: "#c8c8c8",
+            fontFamily: "var(--font-sans)",
+            fontSize: "var(--fs-title)",
+            fontWeight: 600,
+            color: "var(--text-title)",
             margin: 0,
-            letterSpacing: "-0.01em",
           }}
         >
-          Live Findings
+          Live findings
         </h2>
         <span
           style={{
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 10,
+            fontFamily: "var(--font-sans)",
+            fontSize: "var(--fs-sm)",
+            fontVariantNumeric: "tabular-nums",
             color: "#444",
           }}
         >
@@ -176,14 +177,14 @@ export function FindingsStream() {
           >
             <span
               style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 11,
+                fontFamily: "var(--font-sans)",
+                fontSize: "var(--fs-sm)",
                 color: "#333",
               }}
             >
               NO FINDINGS
             </span>
-            <span style={{ fontSize: 10, color: "#2a2a2a" }}>
+            <span style={{ fontFamily: "var(--font-sans)", fontSize: "var(--fs-xs)", color: "#2a2a2a" }}>
               Drop a CSV or XLSX into the watch directory
             </span>
           </div>

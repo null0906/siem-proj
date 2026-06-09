@@ -27,6 +27,7 @@ func NewRouter(h *Handlers) http.Handler {
 	r.Get("/api/pipeline", h.GetPipeline)
 	r.Get("/api/ingest/status", h.GetPipeline)
 	r.Get("/api/findings/summary", h.GetFindingsSummary)
+	r.Get("/api/identity/summary", h.GetIdentitySummary)
 	r.Get("/api/findings", h.ListFindings)
 	r.Get("/api/findings/{id}", h.GetFinding)
 	r.Get("/api/sources", h.ListSources)

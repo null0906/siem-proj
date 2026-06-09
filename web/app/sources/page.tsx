@@ -8,12 +8,12 @@ const PAGE_SIZE = 50;
 
 function ParseStatusBadge({ status }: { status: string }) {
   const map: Record<string, { color: string; label: string }> = {
-    success: { color: "#4ade80", label: "SUCCESS" },
-    failed: { color: "#e5484d", label: "FAILED" },
-    partial: { color: "#f5d75e", label: "PARTIAL" },
-    pending: { color: "#555", label: "PENDING" },
+    success: { color: "#4ade80", label: "Success" },
+    failed: { color: "#e5484d", label: "Failed" },
+    partial: { color: "#f5d75e", label: "Partial" },
+    pending: { color: "#555", label: "Pending" },
   };
-  const { color, label } = map[status] ?? { color: "#555", label: status.toUpperCase() };
+  const { color, label } = map[status] ?? { color: "#555", label: status };
 
   return (
     <span
@@ -21,11 +21,9 @@ function ParseStatusBadge({ status }: { status: string }) {
         display: "inline-flex",
         alignItems: "center",
         gap: 4,
-        fontFamily: "'JetBrains Mono', monospace",
-        fontSize: 10,
+        fontFamily: "var(--font-sans)",
+        fontSize: "var(--fs-xs)",
         color,
-        textTransform: "uppercase",
-        letterSpacing: "0.06em",
       }}
     >
       <span
@@ -71,20 +69,21 @@ export default function SourcesPage() {
       >
         <h1
           style={{
-            fontFamily: "'Newsreader', Georgia, serif",
-            fontSize: 20,
-            fontWeight: 500,
-            color: "#c8c8c8",
+            fontFamily: "var(--font-sans)",
+            fontSize: "var(--fs-h1)",
+            fontWeight: 600,
+            color: "var(--text-title)",
             margin: 0,
           }}
         >
-          Ingested Sources
+          Ingested sources
         </h1>
         <span
           style={{
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 11,
-            color: "#444",
+            fontFamily: "var(--font-sans)",
+            fontSize: "var(--fs-body)",
+            fontVariantNumeric: "tabular-nums",
+            color: "var(--text-secondary)",
           }}
         >
           {isLoading ? "…" : `${total.toLocaleString()} files`}
@@ -103,13 +102,13 @@ export default function SourcesPage() {
           <thead>
             <tr style={{ borderBottom: "1px solid #1f1f1f" }}>
               {[
-                { label: "FILENAME", width: "30%" },
-                { label: "VENDOR", width: "12%" },
-                { label: "ROWS", width: "8%" },
-                { label: "STATUS", width: "10%" },
-                { label: "INGESTED", width: "14%" },
+                { label: "Filename", width: "30%" },
+                { label: "Vendor", width: "12%" },
+                { label: "Rows", width: "8%" },
+                { label: "Status", width: "10%" },
+                { label: "Ingested", width: "14%" },
                 { label: "SHA-256", width: "14%" },
-                { label: "ERROR", width: "12%" },
+                { label: "Error", width: "12%" },
               ].map(({ label, width }) => (
                 <th
                   key={label}
@@ -117,11 +116,10 @@ export default function SourcesPage() {
                     width,
                     padding: "8px 12px",
                     textAlign: "left",
-                    fontFamily: "'JetBrains Mono', monospace",
-                    fontSize: 9,
+                    fontFamily: "var(--font-sans)",
+                    fontSize: "var(--fs-label)",
                     fontWeight: 600,
-                    letterSpacing: "0.1em",
-                    color: "#444",
+                    color: "var(--text-secondary)",
                     background: "#0d0d0d",
                     position: "sticky",
                     top: 0,
@@ -151,12 +149,12 @@ export default function SourcesPage() {
                   style={{
                     padding: "60px 0",
                     textAlign: "center",
-                    fontFamily: "'JetBrains Mono', monospace",
-                    fontSize: 11,
+                    fontFamily: "var(--font-sans)",
+                    fontSize: "var(--fs-sm)",
                     color: "#333",
                   }}
                 >
-                  NO FILES INGESTED YET
+                  No files ingested yet
                 </td>
               </tr>
             )}
@@ -178,8 +176,8 @@ export default function SourcesPage() {
                   <td style={{ padding: "9px 12px", overflow: "hidden" }}>
                     <span
                       style={{
-                        fontFamily: "'JetBrains Mono', monospace",
-                        fontSize: 12,
+                        fontFamily: "var(--font-sans)",
+                        fontSize: "var(--fs-body)",
                         color: "#c0c0c0",
                         display: "block",
                         overflow: "hidden",
@@ -193,8 +191,8 @@ export default function SourcesPage() {
                   <td style={{ padding: "9px 12px" }}>
                     <span
                       style={{
-                        fontFamily: "'JetBrains Mono', monospace",
-                        fontSize: 11,
+                        fontFamily: "var(--font-sans)",
+                        fontSize: "var(--fs-sm)",
                         color: "#666",
                       }}
                     >
@@ -204,9 +202,10 @@ export default function SourcesPage() {
                   <td style={{ padding: "9px 12px" }}>
                     <span
                       style={{
-                        fontFamily: "'JetBrains Mono', monospace",
-                        fontSize: 12,
-                        color: "#888",
+                        fontFamily: "var(--font-mono)",
+                        fontSize: "var(--fs-sm)",
+                        fontVariantNumeric: "tabular-nums",
+                        color: "var(--text-primary)",
                       }}
                     >
                       {s.row_count.toLocaleString()}
@@ -218,8 +217,9 @@ export default function SourcesPage() {
                   <td style={{ padding: "9px 12px" }}>
                     <span
                       style={{
-                        fontFamily: "'JetBrains Mono', monospace",
-                        fontSize: 10,
+                        fontFamily: "var(--font-mono)",
+                        fontSize: "var(--fs-xs)",
+                        fontVariantNumeric: "tabular-nums",
                         color: "#444",
                       }}
                     >
@@ -234,8 +234,8 @@ export default function SourcesPage() {
                   <td style={{ padding: "9px 12px", overflow: "hidden" }}>
                     <span
                       style={{
-                        fontFamily: "'JetBrains Mono', monospace",
-                        fontSize: 9,
+                        fontFamily: "var(--font-mono)",
+                        fontSize: "var(--fs-xs)",
                         color: "#333",
                         display: "block",
                         overflow: "hidden",
@@ -251,8 +251,8 @@ export default function SourcesPage() {
                     {s.error_log ? (
                       <span
                         style={{
-                          fontFamily: "'JetBrains Mono', monospace",
-                          fontSize: 10,
+                          fontFamily: "var(--font-sans)",
+                          fontSize: "var(--fs-xs)",
                           color: "#e5484d",
                           display: "block",
                           overflow: "hidden",
@@ -264,7 +264,7 @@ export default function SourcesPage() {
                         {s.error_log}
                       </span>
                     ) : (
-                      <span style={{ color: "#2a2a2a", fontSize: 10 }}>—</span>
+                      <span style={{ color: "#2a2a2a", fontSize: "var(--fs-xs)" }}>—</span>
                     )}
                   </td>
                 </tr>
@@ -287,9 +287,9 @@ export default function SourcesPage() {
         >
           <span
             style={{
-              fontFamily: "'JetBrains Mono', monospace",
+              fontFamily: "var(--font-sans)",
               color: "#444",
-              fontSize: 11,
+              fontSize: "var(--fs-sm)",
             }}
           >
             Page {currentPage} of {totalPages}
@@ -304,8 +304,8 @@ export default function SourcesPage() {
                 color: offset === 0 ? "#2a2a2a" : "#888",
                 padding: "4px 12px",
                 cursor: offset === 0 ? "not-allowed" : "pointer",
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 11,
+                fontFamily: "var(--font-sans)",
+                fontSize: "var(--fs-sm)",
               }}
             >
               ← prev
@@ -319,8 +319,8 @@ export default function SourcesPage() {
                 color: offset + PAGE_SIZE >= total ? "#2a2a2a" : "#888",
                 padding: "4px 12px",
                 cursor: offset + PAGE_SIZE >= total ? "not-allowed" : "pointer",
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 11,
+                fontFamily: "var(--font-sans)",
+                fontSize: "var(--fs-sm)",
               }}
             >
               next →

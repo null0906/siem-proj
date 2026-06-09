@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { Providers } from "@/components/Providers";
 import { NavRail } from "@/components/nav/NavRail";
 import { IngestPipelineStrip } from "@/components/IngestPipelineStrip";
+import "@fontsource-variable/inter";
+import "@fontsource/ibm-plex-mono/400.css";
+import "@fontsource/ibm-plex-mono/500.css";
 import "@mantine/core/styles.css";
 import "@mantine/notifications/styles.css";
 import "./globals.css";
@@ -18,14 +21,6 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" data-mantine-color-scheme="dark">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap"
-          rel="stylesheet"
-        />
-      </head>
       <body>
         <Providers>
           <div style={{ display: "flex", minHeight: "100vh" }}>

@@ -71,6 +71,44 @@ type SourceFile struct {
 	IngestedAt    time.Time   `json:"ingested_at" db:"ingested_at"`
 }
 
+type IdentityUser struct {
+	ID            uuid.UUID  `json:"id" db:"id"`
+	UserEmail     string     `json:"user_email" db:"user_email"`
+	DisplayName   string     `json:"display_name" db:"display_name"`
+	MFAEnabled    bool       `json:"mfa_enabled" db:"mfa_enabled"`
+	AccountStatus string     `json:"account_status" db:"account_status"`
+	LastLogin     time.Time  `json:"last_login" db:"last_login"`
+	IsPrivileged  bool       `json:"is_privileged" db:"is_privileged"`
+	Groups        string     `json:"groups" db:"groups"`
+	SSOAppsCount  int        `json:"sso_apps_count" db:"sso_apps_count"`
+	CreatedAt     time.Time  `json:"created_at" db:"created_at"`
+	SourceFileID  *uuid.UUID `json:"source_file_id" db:"source_file_id"`
+}
+
+type IdentityTrendPoint struct {
+	Date  string `json:"date"`
+	Count int64  `json:"count"`
+}
+
+type IdentityStatusCounts struct {
+	Active    int64 `json:"active"`
+	Suspended int64 `json:"suspended"`
+	Dormant   int64 `json:"dormant"`
+}
+
+type IdentitySummary struct {
+	TotalUsers         int64                `json:"total_users"`
+	MFACoverage        float64              `json:"mfa_coverage"`
+	DormantAccounts    int64                `json:"dormant_accounts"`
+	PrivilegedAccounts int64                `json:"privileged_accounts"`
+	AccountsWithoutMFA int64                `json:"accounts_without_mfa"`
+	MFAEnabled         int64                `json:"mfa_enabled"`
+	MFADisabled        int64                `json:"mfa_disabled"`
+	ByStatus           IdentityStatusCounts `json:"by_status"`
+	LoginTrend         []IdentityTrendPoint `json:"login_trend"`
+	RiskyUsers         []IdentityUser       `json:"risky_users"`
+}
+
 type Deployment struct {
 	ID           uuid.UUID `json:"id" db:"id"`
 	DeploymentID uuid.UUID `json:"deployment_id" db:"deployment_id"`

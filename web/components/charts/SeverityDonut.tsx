@@ -59,7 +59,7 @@ export default function SeverityDonut({
           options={options}
         />
         <div className="chart-center-label">
-          <span style={{ fontSize: 18, fontWeight: 500 }}>{openTotal}</span>
+          <span style={{ fontSize: "var(--fs-metric-sm)", fontWeight: 600 }}>{openTotal}</span>
           <span className="chart-center-kicker">OPEN</span>
         </div>
       </div>

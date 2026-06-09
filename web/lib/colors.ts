@@ -35,8 +35,8 @@ export const sevColor = (s: string) => SEV[s as keyof typeof SEV] ?? SEV.INFO;
 // Chart.js constants (hardcoded - canvas cannot resolve CSS vars)
 export const CHART = {
   grid: "rgba(0, 196, 255, 0.06)",
-  tick: "#2d4560",
-  font: { family: "'JetBrains Mono', monospace", size: 9 },
+  tick: "#54657d",
+  font: { family: "'Inter Variable', system-ui, sans-serif", size: 11 },
   border: "#080e18",
   tooltip: {
     backgroundColor: "#0b1626",
@@ -45,7 +45,7 @@ export const CHART = {
     titleColor: "#4a6a8a",
     bodyColor: "#8892b0",
     padding: 8,
-    titleFont: { family: "'JetBrains Mono', monospace", size: 10 },
-    bodyFont: { family: "'JetBrains Mono', monospace", size: 10 },
+    titleFont: { family: "'Inter Variable', system-ui, sans-serif", size: 11 },
+    bodyFont: { family: "'Inter Variable', system-ui, sans-serif", size: 11 },
   },
 } as const;

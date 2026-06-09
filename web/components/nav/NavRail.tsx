@@ -7,12 +7,14 @@ import {
   IconActivity,
   IconAlertTriangle,
   IconDatabaseImport,
+  IconKey,
   IconSettings,
 } from "@tabler/icons-react";
 
 const navItems = [
   { href: "/", label: "Overview", short: "OVE", Icon: IconActivity },
   { href: "/findings", label: "Findings", short: "FIN", Icon: IconAlertTriangle },
+  { href: "/identity", label: "Identity", short: "IAM", Icon: IconKey },
   { href: "/sources", label: "Sources", short: "SOU", Icon: IconDatabaseImport },
   { href: "/system", label: "System", short: "SYS", Icon: IconSettings },
 ];
@@ -67,8 +69,8 @@ export function NavRail() {
               <Icon size={15} stroke={1.6} />
               <span
                 style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: 8,
+                  fontFamily: "var(--font-sans)",
+                  fontSize: "var(--fs-caption)",
                   fontWeight: 500,
                   letterSpacing: "0.04em",
                   lineHeight: 1,

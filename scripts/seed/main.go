@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"math/rand"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -42,7 +43,21 @@ func main() {
 	sfID = insertSourceFile(ctx, db, "seed_tenable.csv", "Tenable", 50)
 	insertFindings(ctx, db, sfID, makeTenableFindings(rng, 50), rng)
 
-	fmt.Println("seed complete: 200 findings inserted")
+	identityVendors := []struct {
+		filename string
+		vendor   string
+		offset   int
+	}{
+		{"seed_okta_users.csv", "Okta", 0},
+		{"seed_entra_users.csv", "Microsoft Entra ID", 50},
+		{"seed_google_workspace_users.csv", "Google Workspace", 100},
+	}
+	for _, vendor := range identityVendors {
+		sfID = insertSourceFile(ctx, db, vendor.filename, vendor.vendor, 50)
+		insertIdentityUsers(ctx, db, sfID, makeIdentityUsers(rng, 50, vendor.offset))
+	}
+
+	fmt.Println("seed complete: 200 findings and 150 identity users inserted")
 }
 
 func insertSourceFile(ctx context.Context, db *pgxpool.Pool, filename, vendor string, rows int) uuid.UUID {
@@ -61,6 +76,7 @@ func insertSourceFile(ctx context.Context, db *pgxpool.Pool, filename, vendor st
 }
 
 func insertFindings(ctx context.Context, db *pgxpool.Pool, sfID uuid.UUID, findings []models.Finding, rng *rand.Rand) {
+	db.Exec(ctx, `DELETE FROM findings WHERE source_file_id = $1`, sfID)
 	for _, f := range findings {
 		payload, _ := json.Marshal(f.RawPayload)
 		db.Exec(ctx,
@@ -74,6 +90,27 @@ func insertFindings(ctx context.Context, db *pgxpool.Pool, sfID uuid.UUID, findi
 			string(f.Severity), f.Title, f.Description, f.AffectedAsset,
 			f.FirstSeen, f.LastSeen, string(f.Status),
 			payload, f.IngestedAt, sfID,
+		)
+	}
+}
+
+func insertIdentityUsers(ctx context.Context, db *pgxpool.Pool, sfID uuid.UUID, users []models.IdentityUser) {
+	for _, user := range users {
+		db.Exec(ctx,
+			`INSERT INTO identity_users
+			 (id, user_email, display_name, mfa_enabled, account_status, last_login,
+			  is_privileged, groups, sso_apps_count, created_at, source_file_id)
+			 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+			 ON CONFLICT (user_email, source_file_id) DO UPDATE SET
+			  display_name = EXCLUDED.display_name,
+			  mfa_enabled = EXCLUDED.mfa_enabled,
+			  account_status = EXCLUDED.account_status,
+			  last_login = EXCLUDED.last_login,
+			  is_privileged = EXCLUDED.is_privileged,
+			  groups = EXCLUDED.groups,
+			  sso_apps_count = EXCLUDED.sso_apps_count`,
+			user.ID, user.UserEmail, user.DisplayName, user.MFAEnabled, user.AccountStatus,
+			user.LastLogin, user.IsPrivileged, user.Groups, user.SSOAppsCount, user.CreatedAt, sfID,
 		)
 	}
 }
@@ -99,8 +136,59 @@ var hosts = []string{
 	"SRV-FILE01", "WKSTN-007", "SRV-K8S-01", "SRV-K8S-02", "WKSTN-DEVOPS",
 }
 
+var firstNames = []string{
+	"Aarav", "Aisha", "Arjun", "Diya", "Ishaan", "Kavya", "Maya", "Neha", "Rohan", "Sana",
+	"Vikram", "Zara", "Alex", "Jordan", "Morgan", "Taylor", "Priya", "Rahul", "Meera", "Dev",
+}
+
+var lastNames = []string{
+	"Shah", "Patel", "Rao", "Mehta", "Kapoor", "Singh", "Iyer", "Desai", "Joshi", "Nair",
+}
+
 func randTime(rng *rand.Rand, daysBack int) time.Time {
 	return time.Now().Add(-time.Duration(rng.Intn(daysBack*24)) * time.Hour)
+}
+
+func makeIdentityUsers(rng *rand.Rand, n, offset int) []models.IdentityUser {
+	users := make([]models.IdentityUser, n)
+	groups := []string{
+		"Engineering, GitHub", "Finance, NetSuite", "Sales, Salesforce",
+		"Security, Administrators", "People, HRIS", "Support, Zendesk",
+	}
+
+	for i := range users {
+		index := offset + i
+		first := firstNames[index%len(firstNames)]
+		last := lastNames[(index/len(firstNames))%len(lastNames)]
+		privileged := index%11 == 0
+		mfaEnabled := index%9 != 0
+		status := "active"
+		lastLoginDays := rng.Intn(75)
+		if index%17 == 0 {
+			status = "suspended"
+		}
+		if index%7 == 0 {
+			status = "dormant"
+			lastLoginDays = 95 + rng.Intn(180)
+		}
+		if privileged && index%22 == 0 {
+			mfaEnabled = false
+		}
+
+		users[i] = models.IdentityUser{
+			ID:            uuid.New(),
+			UserEmail:     fmt.Sprintf("%s.%s%03d@seccomply.demo", strings.ToLower(first), strings.ToLower(last), index),
+			DisplayName:   first + " " + last,
+			MFAEnabled:    mfaEnabled,
+			AccountStatus: status,
+			LastLogin:     time.Now().AddDate(0, 0, -lastLoginDays).Add(-time.Duration(rng.Intn(24)) * time.Hour),
+			IsPrivileged:  privileged,
+			Groups:        groups[index%len(groups)],
+			SSOAppsCount:  2 + rng.Intn(18),
+			CreatedAt:     time.Now().AddDate(0, 0, -(180 + rng.Intn(900))),
+		}
+	}
+	return users
 }
 
 func makeCrowdStrikeFindings(rng *rand.Rand, n int) []models.Finding {
@@ -142,10 +230,10 @@ func makeCrowdStrikeFindings(rng *rand.Rand, n int) []models.Finding {
 			LastSeen:      ts.Add(time.Duration(rng.Intn(60)) * time.Minute),
 			Status:        statuses[rng.Intn(len(statuses))],
 			RawPayload: map[string]any{
-				"Tactic":     tactic,
-				"Technique":  technique,
-				"Severity":   string(sev),
-				"Sensor":     "falcon-sensor-6.52",
+				"Tactic":    tactic,
+				"Technique": technique,
+				"Severity":  string(sev),
+				"Sensor":    "falcon-sensor-6.52",
 			},
 			IngestedAt: time.Now().Add(-time.Duration(rng.Intn(72)) * time.Hour),
 		}

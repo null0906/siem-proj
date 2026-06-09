@@ -59,14 +59,14 @@ export function DonutChart({ counts }: { counts: Counts }) {
           pointerEvents: "none",
         }}
       >
-        <span style={{ fontFamily: "var(--font-mono)", fontSize: 20, fontWeight: 500 }}>
+        <span style={{ fontFamily: "var(--font-sans)", fontSize: "var(--fs-metric-sm)", fontWeight: 600, fontVariantNumeric: "tabular-nums", fontFeatureSettings: "'tnum' 1, 'cv05' 1" }}>
           {total}
         </span>
         <span
           style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 8,
-            letterSpacing: "0.12em",
+            fontFamily: "var(--font-sans)",
+            fontSize: "var(--fs-2xs)",
+            letterSpacing: 0,
             color: "var(--text-tertiary)",
           }}
         >

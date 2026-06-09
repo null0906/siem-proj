@@ -244,6 +244,97 @@ func (h *Handlers) GetFindingsSummary(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, summary)
 }
 
+func (h *Handlers) GetIdentitySummary(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	summary := models.IdentitySummary{
+		LoginTrend: []models.IdentityTrendPoint{},
+		RiskyUsers: []models.IdentityUser{},
+	}
+
+	err := h.db.QueryRow(ctx,
+		`SELECT
+			COUNT(*),
+			COUNT(*) FILTER (WHERE mfa_enabled),
+			COUNT(*) FILTER (WHERE NOT mfa_enabled),
+			COUNT(*) FILTER (WHERE account_status = 'dormant' OR last_login < NOW() - INTERVAL '90 days'),
+			COUNT(*) FILTER (WHERE is_privileged),
+			COUNT(*) FILTER (WHERE account_status = 'active'),
+			COUNT(*) FILTER (WHERE account_status = 'suspended'),
+			COUNT(*) FILTER (WHERE account_status = 'dormant')
+		 FROM identity_users`,
+	).Scan(
+		&summary.TotalUsers,
+		&summary.MFAEnabled,
+		&summary.MFADisabled,
+		&summary.DormantAccounts,
+		&summary.PrivilegedAccounts,
+		&summary.ByStatus.Active,
+		&summary.ByStatus.Suspended,
+		&summary.ByStatus.Dormant,
+	)
+	if err != nil {
+		h.serverErr(w, err)
+		return
+	}
+	summary.AccountsWithoutMFA = summary.MFADisabled
+	if summary.TotalUsers > 0 {
+		summary.MFACoverage = float64(summary.MFAEnabled) / float64(summary.TotalUsers) * 100
+	}
+
+	trendByDate := map[string]int64{}
+	for i := 29; i >= 0; i-- {
+		day := time.Now().AddDate(0, 0, -i).Format("2006-01-02")
+		trendByDate[day] = 0
+		summary.LoginTrend = append(summary.LoginTrend, models.IdentityTrendPoint{Date: day})
+	}
+	rows, err := h.db.Query(ctx,
+		`SELECT last_login::date::text, COUNT(*)
+		 FROM identity_users
+		 WHERE last_login >= CURRENT_DATE - INTERVAL '29 days'
+		 GROUP BY last_login::date
+		 ORDER BY last_login::date`)
+	if err != nil {
+		h.serverErr(w, err)
+		return
+	}
+	for rows.Next() {
+		var day string
+		var count int64
+		if err := rows.Scan(&day, &count); err == nil {
+			trendByDate[day] = count
+		}
+	}
+	rows.Close()
+	for i := range summary.LoginTrend {
+		summary.LoginTrend[i].Count = trendByDate[summary.LoginTrend[i].Date]
+	}
+
+	rows, err = h.db.Query(ctx,
+		`SELECT id, user_email, display_name, mfa_enabled, account_status, last_login,
+		        is_privileged, groups, sso_apps_count, created_at, source_file_id
+		 FROM identity_users
+		 WHERE is_privileged AND NOT mfa_enabled
+		 ORDER BY last_login ASC
+		 LIMIT 10`)
+	if err != nil {
+		h.serverErr(w, err)
+		return
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var user models.IdentityUser
+		if err := rows.Scan(
+			&user.ID, &user.UserEmail, &user.DisplayName, &user.MFAEnabled,
+			&user.AccountStatus, &user.LastLogin, &user.IsPrivileged, &user.Groups,
+			&user.SSOAppsCount, &user.CreatedAt, &user.SourceFileID,
+		); err == nil {
+			summary.RiskyUsers = append(summary.RiskyUsers, user)
+		}
+	}
+
+	writeJSON(w, http.StatusOK, summary)
+}
+
 func (h *Handlers) ListFindings(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 

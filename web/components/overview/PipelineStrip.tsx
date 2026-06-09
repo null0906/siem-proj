@@ -54,10 +54,10 @@ export function PipelineStrip() {
       {/* Label */}
       <div
         style={{
-          fontFamily: "'JetBrains Mono', monospace",
-          fontSize: 10,
+          fontFamily: "var(--font-sans)",
+          fontSize: "var(--fs-xs)",
           color: "#94d2bd",
-          letterSpacing: "0.12em",
+          letterSpacing: "0.04em",
           textTransform: "uppercase",
           marginRight: 20,
           display: "flex",
@@ -86,22 +86,23 @@ export function PipelineStrip() {
                   borderRight: i < STAGES.length - 1 ? "none" : undefined,
                 }}
               >
-                <span style={{ color: "#333", fontSize: 11 }}>{stage.icon}</span>
+                <span style={{ color: "#333", fontSize: "var(--fs-xs)" }}>{stage.icon}</span>
                 <div>
                   <div
                     style={{
-                      fontFamily: "'JetBrains Mono', monospace",
-                      fontSize: 9,
+                      fontFamily: "var(--font-sans)",
+                      fontSize: "var(--fs-2xs)",
                       color: "#444",
-                      letterSpacing: "0.1em",
+                      letterSpacing: "0.04em",
                     }}
                   >
                     {stage.label}
                   </div>
                   <div
                     style={{
-                      fontFamily: "'JetBrains Mono', monospace",
-                      fontSize: 13,
+                      fontFamily: "var(--font-sans)",
+                      fontSize: "var(--fs-sm)",
+                      fontVariantNumeric: "tabular-nums",
                       color: isLoading ? "#333" : count > 0 ? "#94d2bd" : "#3a3a3a",
                       fontWeight: 500,
                     }}
@@ -131,18 +132,19 @@ export function PipelineStrip() {
         <div>
           <div
             style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 9,
+              fontFamily: "var(--font-sans)",
+              fontSize: "var(--fs-2xs)",
               color: "#444",
-              letterSpacing: "0.1em",
+              letterSpacing: "0.04em",
             }}
           >
             FILES TODAY
           </div>
           <div
             style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 18,
+              fontFamily: "var(--font-sans)",
+              fontSize: "var(--fs-metric-sm)",
+              fontVariantNumeric: "tabular-nums",
               color: data && data.files_today > 0 ? "#e8e8e8" : "#333",
               fontWeight: 600,
               lineHeight: 1,
@@ -156,18 +158,19 @@ export function PipelineStrip() {
           <div>
             <div
               style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 9,
+                fontFamily: "var(--font-sans)",
+                fontSize: "var(--fs-2xs)",
                 color: "#444",
-                letterSpacing: "0.1em",
+                letterSpacing: "0.04em",
               }}
             >
               LAST POLL
             </div>
             <div
               style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 11,
+                fontFamily: "var(--font-mono)",
+                fontSize: "var(--fs-sm)",
+                fontVariantNumeric: "tabular-nums",
                 color: "#555",
               }}
             >

@@ -56,24 +56,23 @@ export default function OverviewPage() {
       <header style={{ borderLeft: `2px solid ${CYBER.accent}`, paddingLeft: 12, marginBottom: 16 }}>
         <h1
           style={{
-            fontFamily: "JetBrains Mono",
-            fontSize: 18,
-            fontWeight: 500,
-            letterSpacing: "0.03em",
-            color: "#e2ecff",
+            fontFamily: "var(--font-sans)",
+            fontSize: "var(--fs-h1)",
+            fontWeight: 600,
+            color: "var(--text-title)",
             margin: 0,
             marginBottom: 2,
             lineHeight: 1.2,
           }}
         >
-          Security Overview
+          Security overview
         </h1>
         <p
           style={{
             margin: 0,
-            fontFamily: "JetBrains Mono",
-            fontSize: 10,
-            color: "var(--cy-muted)",
+            fontFamily: "var(--font-sans)",
+            fontSize: "var(--fs-caption)",
+            color: "var(--text-secondary)",
             letterSpacing: "0.04em",
           }}
         >
@@ -135,7 +134,7 @@ export default function OverviewPage() {
               <LegendItem color={SEV.CRITICAL} label="Critical" />
               <LegendItem color={SEV.HIGH} label="High" />
               <LegendItem color={SEV.MEDIUM} label="Medium" />
-              <span style={{ color: "var(--cy-muted)" }}>Last 14 days</span>
+              <span style={{ color: "var(--text-secondary)" }}>Last 14 days</span>
             </div>
           }
         />
@@ -223,10 +222,10 @@ function MetricCard({
     >
       <div
         style={{
-          fontFamily: "JetBrains Mono",
-          fontSize: 9,
-          letterSpacing: "0.1em",
-          color: "var(--cy-muted)",
+          fontFamily: "var(--font-sans)",
+          fontSize: "var(--fs-label)",
+          letterSpacing: "0.04em",
+          color: "var(--text-secondary)",
           textTransform: "uppercase",
           marginBottom: 5,
         }}
@@ -235,9 +234,11 @@ function MetricCard({
       </div>
       <div
         style={{
-          fontFamily: "JetBrains Mono",
-          fontSize: 32,
+          fontFamily: "var(--font-sans)",
+          fontSize: "var(--fs-metric)",
           fontWeight: 600,
+          fontVariantNumeric: "tabular-nums",
+          fontFeatureSettings: "'tnum' 1, 'cv05' 1",
           lineHeight: 1,
           marginBottom: 3,
           color: valueColor,
@@ -248,9 +249,9 @@ function MetricCard({
       {delta && (
         <div
           style={{
-            fontFamily: "JetBrains Mono",
-            fontSize: 10,
-            color: "var(--cy-muted)",
+            fontFamily: "var(--font-sans)",
+            fontSize: "var(--fs-caption)",
+            color: "var(--text-secondary)",
           }}
         >
           {delta}
@@ -297,10 +298,10 @@ function PanelHeader({
         justifyContent: "space-between",
         gap: 12,
         marginBottom: 12,
-        fontFamily: "var(--font-mono)",
-        fontSize: 9,
-        letterSpacing: "0.1em",
-        color: "var(--cy-muted)",
+        fontFamily: "var(--font-sans)",
+        fontSize: "var(--fs-title)",
+        fontWeight: 600,
+        color: "var(--text-title)",
       }}
     >
       <span>{title}</span>

@@ -26,11 +26,9 @@ function InfoRow({
     >
       <span
         style={{
-          fontFamily: "'JetBrains Mono', monospace",
-          fontSize: 10,
-          color: "#444",
-          letterSpacing: "0.1em",
-          textTransform: "uppercase",
+          fontFamily: "var(--font-sans)",
+          fontSize: "var(--fs-label)",
+          color: "var(--text-secondary)",
           flexShrink: 0,
           width: 160,
         }}
@@ -39,8 +37,9 @@ function InfoRow({
       </span>
       <span
         style={{
-          fontFamily: mono ? "'JetBrains Mono', monospace" : "Inter, sans-serif",
-          fontSize: mono ? 12 : 13,
+          fontFamily: mono ? "var(--font-mono)" : "var(--font-sans)",
+          fontSize: "var(--fs-sm)",
+          fontVariantNumeric: mono ? "tabular-nums" : undefined,
           color: accent ? "#94d2bd" : "#aaa",
           wordBreak: "break-all",
         }}
@@ -69,10 +68,10 @@ export default function SystemPage() {
       >
         <h1
           style={{
-            fontFamily: "'Newsreader', Georgia, serif",
-            fontSize: 20,
-            fontWeight: 500,
-            color: "#c8c8c8",
+            fontFamily: "var(--font-sans)",
+            fontSize: "var(--fs-h1)",
+            fontWeight: 600,
+            color: "var(--text-title)",
             margin: 0,
           }}
         >
@@ -88,8 +87,8 @@ export default function SystemPage() {
               padding: "12px 16px",
               background: "rgba(229,72,77,0.06)",
               border: "1px solid rgba(229,72,77,0.2)",
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 11,
+              fontFamily: "var(--font-sans)",
+              fontSize: "var(--fs-sm)",
               color: "#e5484d",
             }}
           >
@@ -109,10 +108,10 @@ export default function SystemPage() {
           >
             <span
               style={{
-                fontFamily: "'Newsreader', Georgia, serif",
-                fontSize: 13,
-                color: "#555",
-                fontStyle: "italic",
+                fontFamily: "var(--font-sans)",
+                fontSize: "var(--fs-title)",
+                fontWeight: 600,
+                color: "var(--text-title)",
               }}
             >
               Deployment
@@ -146,10 +145,10 @@ export default function SystemPage() {
           >
             <span
               style={{
-                fontFamily: "'Newsreader', Georgia, serif",
-                fontSize: 13,
-                color: "#555",
-                fontStyle: "italic",
+                fontFamily: "var(--font-sans)",
+                fontSize: "var(--fs-title)",
+                fontWeight: 600,
+                color: "var(--text-title)",
               }}
             >
               Ingestor
@@ -182,10 +181,10 @@ export default function SystemPage() {
           >
             <span
               style={{
-                fontFamily: "'Newsreader', Georgia, serif",
-                fontSize: 13,
-                color: "#555",
-                fontStyle: "italic",
+                fontFamily: "var(--font-sans)",
+                fontSize: "var(--fs-title)",
+                fontWeight: 600,
+                color: "var(--text-title)",
               }}
             >
               Telemetry
@@ -219,10 +218,10 @@ export default function SystemPage() {
           >
             <span
               style={{
-                fontFamily: "'Newsreader', Georgia, serif",
-                fontSize: 13,
-                color: "#555",
-                fontStyle: "italic",
+                fontFamily: "var(--font-sans)",
+                fontSize: "var(--fs-title)",
+                fontWeight: 600,
+                color: "var(--text-title)",
               }}
             >
               API

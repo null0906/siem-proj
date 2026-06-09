@@ -40,9 +40,9 @@ export function IngestPipelineStrip() {
     >
       <span
         style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: 9,
-          letterSpacing: "0.12em",
+          fontFamily: "var(--font-sans)",
+          fontSize: "var(--fs-2xs)",
+          letterSpacing: "0.04em",
           color: "#2d4560",
           whiteSpace: "nowrap",
         }}
@@ -54,9 +54,9 @@ export function IngestPipelineStrip() {
         <div key={key} style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span
             style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: 9,
-              letterSpacing: "0.08em",
+              fontFamily: "var(--font-sans)",
+              fontSize: "var(--fs-2xs)",
+              letterSpacing: "0.04em",
               color: "#2d4560",
             }}
           >
@@ -64,9 +64,10 @@ export function IngestPipelineStrip() {
           </span>
           <span
             style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: 12,
+              fontFamily: "var(--font-sans)",
+              fontSize: "var(--fs-body)",
               fontWeight: 500,
+              fontVariantNumeric: "tabular-nums",
               color: noFilesToday ? "#2d4560" : "#00c4ff",
               minWidth: 12,
             }}
@@ -74,7 +75,7 @@ export function IngestPipelineStrip() {
             {data?.[key] ?? 0}
           </span>
           {index < stages.length - 1 && (
-            <span style={{ color: "#2d4560", fontSize: 12 }}>→</span>
+            <span style={{ color: "#2d4560", fontSize: "var(--fs-sm)" }}>→</span>
           )}
         </div>
       ))}
@@ -82,9 +83,9 @@ export function IngestPipelineStrip() {
       <span
         style={{
           marginLeft: "auto",
-          fontFamily: "var(--font-mono)",
-          fontSize: 9,
-          letterSpacing: "0.08em",
+          fontFamily: "var(--font-sans)",
+          fontSize: "var(--fs-2xs)",
+          letterSpacing: "0.04em",
           color: "#2d4560",
           whiteSpace: "nowrap",
         }}
@@ -93,9 +94,10 @@ export function IngestPipelineStrip() {
       </span>
       <span
         style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: noFilesToday ? 9 : 15,
+          fontFamily: "var(--font-sans)",
+          fontSize: noFilesToday ? "var(--fs-caption)" : "var(--fs-body)",
           fontWeight: 500,
+          fontVariantNumeric: "tabular-nums",
           letterSpacing: noFilesToday ? "0.08em" : "0.18em",
           color: noFilesToday ? "#2d4560" : "#00c4ff",
           whiteSpace: "nowrap",

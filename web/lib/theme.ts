@@ -3,7 +3,7 @@ import { createTheme } from "@mantine/core";
 export const theme = createTheme({
   primaryColor: "cyan",
   fontFamily: "var(--font-sans)",
-  fontFamilyMonospace: "'JetBrains Mono', monospace",
+  fontFamilyMonospace: "var(--font-mono)",
   defaultRadius: 0,
   black: "#070c12",
   colors: {
