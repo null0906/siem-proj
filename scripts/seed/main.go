@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/seccomply/seccomply/internal/assets"
 	"github.com/seccomply/seccomply/internal/models"
 )
 
@@ -57,7 +58,92 @@ func main() {
 		insertIdentityUsers(ctx, db, sfID, makeIdentityUsers(rng, 50, vendor.offset))
 	}
 
-	fmt.Println("seed complete: 200 findings and 150 identity users inserted")
+	insertPostureSnapshots(ctx, db)
+	insertAlertRules(ctx, db)
+	if err := assets.New(db).Refresh(ctx); err != nil {
+		slog.Error("asset refresh", "err", err)
+		os.Exit(1)
+	}
+
+	fmt.Println("seed complete: 200 findings, 150 identity users, 60 posture snapshots, 5 alert rules, and correlated assets inserted")
+}
+
+func insertAlertRules(ctx context.Context, db *pgxpool.Pool) {
+	rules := []struct {
+		name, description, category, conditionType, metric, operator string
+		threshold                                                    *float64
+		deltaDirection                                               *string
+		deltaAmount                                                  *float64
+		severity, trigger                                            string
+		cooldown                                                     int
+	}{
+		{"Open critical findings exceeded threshold", "Alert when more than ten critical findings are open.", "vulnerability", "threshold", "open_critical_count", "gt", floatPtr(10), nil, nil, "critical", "both", 60},
+		{"Posture score dropped materially", "Alert when the posture score drops by five or more points.", "posture", "delta", "posture_score", "", nil, stringPtr("decrease"), floatPtr(5), "high", "both", 240},
+		{"New public cloud exposure", "Alert when a newly ingested public cloud exposure appears.", "cloud", "new_entity", "new_public_cloud_exposure", "", nil, nil, nil, "critical", "on_ingest", 60},
+		{"New privileged account without MFA", "Alert when a new privileged identity lacks MFA.", "identity", "new_entity", "new_privileged_without_mfa", "", nil, nil, nil, "high", "on_ingest", 60},
+		{"Finding breached severity SLA", "Alert when an open finding breaches its severity-driven SLA.", "vulnerability", "sla", "finding_sla_breach", "", nil, nil, nil, "critical", "scheduled", 1440},
+	}
+	for _, rule := range rules {
+		var operator any
+		if rule.operator != "" {
+			operator = rule.operator
+		}
+		db.Exec(ctx, `
+			INSERT INTO alert_rules
+				(name, description, category, condition_type, metric, operator, threshold_value,
+				 delta_direction, delta_amount, severity, evaluation_trigger, cooldown_minutes)
+			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+			ON CONFLICT (name) DO UPDATE SET
+				description = EXCLUDED.description,
+				category = EXCLUDED.category,
+				condition_type = EXCLUDED.condition_type,
+				metric = EXCLUDED.metric,
+				operator = EXCLUDED.operator,
+				threshold_value = EXCLUDED.threshold_value,
+				delta_direction = EXCLUDED.delta_direction,
+				delta_amount = EXCLUDED.delta_amount,
+				severity = EXCLUDED.severity,
+				evaluation_trigger = EXCLUDED.evaluation_trigger,
+				cooldown_minutes = EXCLUDED.cooldown_minutes`,
+			rule.name, rule.description, rule.category, rule.conditionType, rule.metric, operator,
+			rule.threshold, rule.deltaDirection, rule.deltaAmount, rule.severity, rule.trigger, rule.cooldown,
+		)
+	}
+}
+
+func floatPtr(value float64) *float64 { return &value }
+func stringPtr(value string) *string  { return &value }
+
+func insertPostureSnapshots(ctx context.Context, db *pgxpool.Pool) {
+	for daysAgo := 59; daysAgo >= 0; daysAgo-- {
+		progress := 59 - daysAgo
+		plateau := progress
+		if plateau > 43 {
+			plateau = 43
+		}
+		wobble := []int{0, 1, 0, -1, 0, 1, 0}[progress%7]
+		vulnerability := min(78, 49+plateau/2+wobble)
+		identity := min(88, 68+plateau/3+wobble)
+		endpoint := min(91, 76+plateau/4)
+		cloud := min(94, 82+plateau/5+wobble)
+		compliance := min(86, 63+plateau/2)
+		overall := int(float64(vulnerability)*0.25 + float64(identity)*0.20 + float64(endpoint)*0.15 + float64(cloud)*0.20 + float64(compliance)*0.20 + 0.5)
+
+		db.Exec(ctx, `
+			INSERT INTO posture_snapshots
+				(snapshot_date, overall_score, vulnerability_score, identity_score, endpoint_score, cloud_score, compliance_score)
+			VALUES ($1,$2,$3,$4,$5,$6,$7)
+			ON CONFLICT (snapshot_date) DO UPDATE SET
+				overall_score = EXCLUDED.overall_score,
+				vulnerability_score = EXCLUDED.vulnerability_score,
+				identity_score = EXCLUDED.identity_score,
+				endpoint_score = EXCLUDED.endpoint_score,
+				cloud_score = EXCLUDED.cloud_score,
+				compliance_score = EXCLUDED.compliance_score`,
+			time.Now().AddDate(0, 0, -daysAgo).Format("2006-01-02"),
+			overall, vulnerability, identity, endpoint, cloud, compliance,
+		)
+	}
 }
 
 func insertSourceFile(ctx context.Context, db *pgxpool.Pool, filename, vendor string, rows int) uuid.UUID {
@@ -145,8 +231,46 @@ var lastNames = []string{
 	"Shah", "Patel", "Rao", "Mehta", "Kapoor", "Singh", "Iyer", "Desai", "Joshi", "Nair",
 }
 
+func assetSignals(host string) map[string]any {
+	owners := map[string]struct {
+		email      string
+		privileged bool
+		mfa        bool
+	}{
+		"SRV-WEB02":  {"aarav.shah000@seccomply.demo", true, false},
+		"SRV-DB01":   {"zara.shah011@seccomply.demo", true, true},
+		"LAPTOP-CEO": {"arjun.patel022@seccomply.demo", true, false},
+	}
+	signals := map[string]any{
+		"public":       host == "SRV-WEB02",
+		"is_encrypted": host != "SRV-DB01" && host != "LAPTOP-CEO",
+	}
+	if owner, ok := owners[host]; ok {
+		signals["owner_email"] = owner.email
+		signals["owner_is_privileged"] = owner.privileged
+		signals["owner_mfa_enabled"] = owner.mfa
+	}
+	return signals
+}
+
+func mergePayload(base, extra map[string]any) map[string]any {
+	for key, value := range extra {
+		base[key] = value
+	}
+	return base
+}
+
 func randTime(rng *rand.Rand, daysBack int) time.Time {
 	return time.Now().Add(-time.Duration(rng.Intn(daysBack*24)) * time.Hour)
+}
+
+func randomHostExcept(rng *rand.Rand, excluded string) string {
+	for {
+		host := hosts[rng.Intn(len(hosts))]
+		if host != excluded {
+			return host
+		}
+	}
 }
 
 func makeIdentityUsers(rng *rand.Rand, n, offset int) []models.IdentityUser {
@@ -216,6 +340,7 @@ func makeCrowdStrikeFindings(rng *rand.Rand, n int) []models.Finding {
 		technique := techniques[rng.Intn(len(techniques))]
 		sev := severities[rng.Intn(len(severities))]
 		ts := randTime(rng, 30)
+		host := randomHostExcept(rng, "SRV-WEB02")
 
 		findings[i] = models.Finding{
 			ID:            uuid.New(),
@@ -225,16 +350,17 @@ func makeCrowdStrikeFindings(rng *rand.Rand, n int) []models.Finding {
 			Severity:      sev,
 			Title:         fmt.Sprintf("%s — %s", tactic, technique),
 			Description:   fmt.Sprintf("CrowdStrike Falcon detected %s activity via %s on the endpoint.", tactic, technique),
-			AffectedAsset: hosts[rng.Intn(len(hosts))],
+			AffectedAsset: host,
 			FirstSeen:     ts,
 			LastSeen:      ts.Add(time.Duration(rng.Intn(60)) * time.Minute),
 			Status:        statuses[rng.Intn(len(statuses))],
-			RawPayload: map[string]any{
+			RawPayload: mergePayload(map[string]any{
 				"Tactic":    tactic,
 				"Technique": technique,
 				"Severity":  string(sev),
 				"Sensor":    "falcon-sensor-6.52",
-			},
+				"has_edr":   true,
+			}, assetSignals(host)),
 			IngestedAt: time.Now().Add(-time.Duration(rng.Intn(72)) * time.Hour),
 		}
 	}
@@ -266,6 +392,7 @@ func makeFortinetFindings(rng *rand.Rand, n int) []models.Finding {
 		sev := severities[rng.Intn(len(severities))]
 		ts := randTime(rng, 30)
 		logID := fmt.Sprintf("%013d", rng.Int63())
+		host := hosts[rng.Intn(len(hosts))]
 
 		msg := fmt.Sprintf("%s traffic detected from %s to %s", subtype, srcIP, dstIP)
 
@@ -277,18 +404,18 @@ func makeFortinetFindings(rng *rand.Rand, n int) []models.Finding {
 			Severity:      sev,
 			Title:         fmt.Sprintf("%s → %s [%s]", srcIP, dstIP, action),
 			Description:   msg,
-			AffectedAsset: hosts[rng.Intn(len(hosts))],
+			AffectedAsset: host,
 			FirstSeen:     ts,
 			LastSeen:      ts,
 			Status:        statuses[rng.Intn(len(statuses))],
-			RawPayload: map[string]any{
+			RawPayload: mergePayload(map[string]any{
 				"logid":   logID,
 				"subtype": subtype,
 				"srcip":   srcIP,
 				"dstip":   dstIP,
 				"action":  action,
 				"level":   string(sev),
-			},
+			}, assetSignals(host)),
 			IngestedAt: time.Now().Add(-time.Duration(rng.Intn(72)) * time.Hour),
 		}
 	}
@@ -339,14 +466,14 @@ func makeTenableFindings(rng *rand.Rand, n int) []models.Finding {
 			FirstSeen:     ts,
 			LastSeen:      ts,
 			Status:        statuses[rng.Intn(len(statuses))],
-			RawPayload: map[string]any{
+			RawPayload: mergePayload(map[string]any{
 				"Plugin ID": pluginID,
 				"CVE":       v.cve,
 				"Risk":      string(sev),
 				"Host":      host,
 				"Port":      port,
 				"Synopsis":  v.synopsis,
-			},
+			}, assetSignals(host)),
 			IngestedAt: time.Now().Add(-time.Duration(rng.Intn(72)) * time.Hour),
 		}
 	}

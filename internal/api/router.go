@@ -17,7 +17,7 @@ func NewRouter(h *Handlers) http.Handler {
 	r.Use(middleware.Recoverer)
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins: []string{"*"},
-		AllowedMethods: []string{"GET", "POST", "OPTIONS"},
+		AllowedMethods: []string{"GET", "POST", "PATCH", "OPTIONS"},
 		AllowedHeaders: []string{"Accept", "Content-Type"},
 	}))
 
@@ -27,9 +27,18 @@ func NewRouter(h *Handlers) http.Handler {
 	r.Get("/api/pipeline", h.GetPipeline)
 	r.Get("/api/ingest/status", h.GetPipeline)
 	r.Get("/api/findings/summary", h.GetFindingsSummary)
+	r.Get("/api/posture/summary", h.GetPostureSummary)
+	r.Get("/api/assets", h.GetAssets)
+	r.Get("/api/actions", h.GetActions)
+	r.Get("/api/executive/summary", h.GetExecutiveSummary)
+	r.Get("/api/executive/report.pdf", h.GetExecutiveReportPDF)
+	r.Get("/api/compliance/summary", h.GetComplianceSummary)
+	r.Get("/api/activity", h.GetActivityFeed)
+	r.Post("/api/alerting/evaluate", h.EvaluateAlerts)
 	r.Get("/api/identity/summary", h.GetIdentitySummary)
 	r.Get("/api/findings", h.ListFindings)
 	r.Get("/api/findings/{id}", h.GetFinding)
+	r.Patch("/api/findings/{id}/workflow", h.UpdateFindingWorkflow)
 	r.Get("/api/sources", h.ListSources)
 	r.Get("/api/system", h.GetSystem)
 

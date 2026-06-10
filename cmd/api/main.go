@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/seccomply/seccomply/internal/alerting"
 	"github.com/seccomply/seccomply/internal/api"
 	"github.com/seccomply/seccomply/internal/db"
 )
@@ -43,6 +44,7 @@ func main() {
 	}
 
 	go api.Heartbeat(ctx, database.Pool)
+	go alerting.RunScheduled(ctx, database.Pool)
 
 	h := api.NewHandlers(database.Pool)
 	router := api.NewRouter(h)

@@ -55,9 +55,25 @@ type Finding struct {
 	FirstSeen     time.Time      `json:"first_seen" db:"first_seen"`
 	LastSeen      time.Time      `json:"last_seen" db:"last_seen"`
 	Status        Status         `json:"status" db:"status"`
+	Assignee      string         `json:"assignee" db:"assignee"`
+	DueDate       *time.Time     `json:"due_date" db:"due_date"`
+	Note          string         `json:"note" db:"note"`
+	SLAStatus     string         `json:"sla_status"`
+	SLADueAt      time.Time      `json:"sla_due_at"`
+	Events        []FindingEvent `json:"events,omitempty"`
 	RawPayload    map[string]any `json:"raw_payload" db:"raw_payload"`
 	IngestedAt    time.Time      `json:"ingested_at" db:"ingested_at"`
 	SourceFileID  *uuid.UUID     `json:"source_file_id" db:"source_file_id"`
+}
+
+type FindingEvent struct {
+	ID        int64     `json:"id"`
+	EventType string    `json:"event_type"`
+	Actor     string    `json:"actor"`
+	FromValue string    `json:"from_value"`
+	ToValue   string    `json:"to_value"`
+	Note      string    `json:"note"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type SourceFile struct {

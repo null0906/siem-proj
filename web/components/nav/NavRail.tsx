@@ -5,9 +5,14 @@ import { usePathname } from "next/navigation";
 import { Tooltip } from "@mantine/core";
 import {
   IconActivity,
+  IconTimelineEvent,
+  IconChecklist,
   IconAlertTriangle,
   IconDatabaseImport,
   IconKey,
+  IconPresentation,
+  IconShieldCheck,
+  IconServer,
   IconSettings,
 } from "@tabler/icons-react";
 
@@ -15,6 +20,11 @@ const navItems = [
   { href: "/", label: "Overview", short: "OVE", Icon: IconActivity },
   { href: "/findings", label: "Findings", short: "FIN", Icon: IconAlertTriangle },
   { href: "/identity", label: "Identity", short: "IAM", Icon: IconKey },
+  { href: "/assets", label: "Assets", short: "AST", Icon: IconServer },
+  { href: "/actions", label: "Actions", short: "ACT", Icon: IconChecklist },
+  { href: "/executive", label: "Executive", short: "EXE", Icon: IconPresentation },
+  { href: "/compliance", label: "Compliance", short: "CMP", Icon: IconShieldCheck },
+  { href: "/activity", label: "Activity", short: "LOG", Icon: IconTimelineEvent },
   { href: "/sources", label: "Sources", short: "SOU", Icon: IconDatabaseImport },
   { href: "/system", label: "System", short: "SYS", Icon: IconSettings },
 ];

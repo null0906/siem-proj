@@ -15,7 +15,15 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/seccomply/seccomply/internal/activity"
+	"github.com/seccomply/seccomply/internal/alerting"
+	"github.com/seccomply/seccomply/internal/assets"
+	"github.com/seccomply/seccomply/internal/compliance"
+	"github.com/seccomply/seccomply/internal/executive"
 	"github.com/seccomply/seccomply/internal/models"
+	"github.com/seccomply/seccomply/internal/prioritization"
+	"github.com/seccomply/seccomply/internal/remediation"
+	"github.com/seccomply/seccomply/internal/scoring"
 )
 
 const version = "0.1.0"
@@ -63,7 +71,7 @@ func (h *Handlers) GetDashboard(w http.ResponseWriter, r *http.Request) {
 
 	err := h.db.QueryRow(ctx,
 		`SELECT
-			COUNT(*) FILTER (WHERE status = 'open'),
+			COUNT(*) FILTER (WHERE status IN ('open','in_progress')),
 			COUNT(*) FILTER (WHERE severity = 'critical'),
 			COUNT(*) FILTER (WHERE severity = 'high'),
 			COUNT(*) FILTER (WHERE severity = 'medium'),
@@ -130,16 +138,16 @@ func (h *Handlers) GetFindingsSummary(w http.ResponseWriter, r *http.Request) {
 
 	err := h.db.QueryRow(ctx,
 		`SELECT
-			COUNT(*) FILTER (WHERE status = 'open'),
-			COUNT(*) FILTER (WHERE status = 'open' AND severity = 'critical'),
+			COUNT(*) FILTER (WHERE status IN ('open','in_progress')),
+			COUNT(*) FILTER (WHERE status IN ('open','in_progress') AND severity = 'critical'),
 			COUNT(*) FILTER (WHERE status = 'resolved' AND last_seen >= CURRENT_DATE),
 			COALESCE(AVG(EXTRACT(EPOCH FROM (NOW() - first_seen)) / 86400)
-				FILTER (WHERE status = 'open'), 0),
-			COUNT(*) FILTER (WHERE status = 'open' AND severity = 'critical'),
-			COUNT(*) FILTER (WHERE status = 'open' AND severity = 'high'),
-			COUNT(*) FILTER (WHERE status = 'open' AND severity = 'medium'),
-			COUNT(*) FILTER (WHERE status = 'open' AND severity = 'low'),
-			COUNT(*) FILTER (WHERE status = 'open' AND severity = 'info')
+				FILTER (WHERE status IN ('open','in_progress')), 0),
+			COUNT(*) FILTER (WHERE status IN ('open','in_progress') AND severity = 'critical'),
+			COUNT(*) FILTER (WHERE status IN ('open','in_progress') AND severity = 'high'),
+			COUNT(*) FILTER (WHERE status IN ('open','in_progress') AND severity = 'medium'),
+			COUNT(*) FILTER (WHERE status IN ('open','in_progress') AND severity = 'low'),
+			COUNT(*) FILTER (WHERE status IN ('open','in_progress') AND severity = 'info')
 		 FROM findings`,
 	).Scan(
 		&summary.OpenTotal,
@@ -165,7 +173,7 @@ func (h *Handlers) GetFindingsSummary(w http.ResponseWriter, r *http.Request) {
 	rows, err := h.db.Query(ctx,
 		`SELECT COALESCE(NULLIF(source_vendor, ''), source_tool::text) AS source, COUNT(*)
 		 FROM findings
-		 WHERE status = 'open'
+		 WHERE status IN ('open','in_progress')
 		 GROUP BY source
 		 ORDER BY COUNT(*) DESC, source ASC
 		 LIMIT 5`)
@@ -185,7 +193,7 @@ func (h *Handlers) GetFindingsSummary(w http.ResponseWriter, r *http.Request) {
 	rows, err = h.db.Query(ctx,
 		`SELECT COALESCE(NULLIF(affected_asset, ''), 'Unknown asset') AS asset, COUNT(*)
 		 FROM findings
-		 WHERE status = 'open'
+		 WHERE status IN ('open','in_progress')
 		 GROUP BY asset
 		 ORDER BY COUNT(*) DESC, asset ASC
 		 LIMIT 5`)
@@ -335,6 +343,91 @@ func (h *Handlers) GetIdentitySummary(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, summary)
 }
 
+func (h *Handlers) GetPostureSummary(w http.ResponseWriter, r *http.Request) {
+	summary, err := scoring.New(h.db).GetSummary(r.Context())
+	if err != nil {
+		h.serverErr(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, summary)
+}
+
+func (h *Handlers) EvaluateAlerts(w http.ResponseWriter, r *http.Request) {
+	result, err := alerting.New(h.db).Evaluate(r.Context(), alerting.TriggerManual)
+	if err != nil {
+		h.serverErr(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
+}
+
+func (h *Handlers) GetAssets(w http.ResponseWriter, r *http.Request) {
+	inventory, err := assets.New(h.db).Inventory(r.Context())
+	if err != nil {
+		h.serverErr(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, inventory)
+}
+
+func (h *Handlers) GetActions(w http.ResponseWriter, r *http.Request) {
+	queue, err := prioritization.New(h.db).Queue(r.Context())
+	if err != nil {
+		h.serverErr(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, queue)
+}
+
+func (h *Handlers) GetExecutiveSummary(w http.ResponseWriter, r *http.Request) {
+	days, _ := strconv.Atoi(r.URL.Query().Get("days"))
+	summary, err := executive.New(h.db).GetSummary(r.Context(), days)
+	if err != nil {
+		h.serverErr(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, summary)
+}
+
+func (h *Handlers) GetExecutiveReportPDF(w http.ResponseWriter, r *http.Request) {
+	days, _ := strconv.Atoi(r.URL.Query().Get("days"))
+	summary, err := executive.New(h.db).GetSummary(r.Context(), days)
+	if err != nil {
+		h.serverErr(w, err)
+		return
+	}
+	report, err := executive.RenderPDF(summary)
+	if err != nil {
+		h.serverErr(w, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/pdf")
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="seccomply-board-report-%s.pdf"`, time.Now().Format("2006-01-02")))
+	w.Header().Set("Content-Length", strconv.Itoa(len(report)))
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(report)
+}
+
+func (h *Handlers) GetComplianceSummary(w http.ResponseWriter, r *http.Request) {
+	summary, err := compliance.New(h.db).GetSummary(r.Context())
+	if err != nil {
+		h.serverErr(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, summary)
+}
+
+func (h *Handlers) GetActivityFeed(w http.ResponseWriter, r *http.Request) {
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	days, _ := strconv.Atoi(r.URL.Query().Get("days"))
+	feed, err := activity.New(h.db).Feed(r.Context(), limit, days)
+	if err != nil {
+		h.serverErr(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, feed)
+}
+
 func (h *Handlers) ListFindings(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 
@@ -370,6 +463,22 @@ func (h *Handlers) ListFindings(w http.ResponseWriter, r *http.Request) {
 		conditions = append(conditions, fmt.Sprintf("status = $%d", argN))
 		argN++
 	}
+	if assignee := q.Get("assignee"); assignee != "" {
+		args = append(args, assignee)
+		conditions = append(conditions, fmt.Sprintf("assignee = $%d", argN))
+		argN++
+	}
+	if q.Get("overdue") == "true" {
+		conditions = append(conditions, `(status NOT IN ('resolved','risk_accepted') AND COALESCE(
+			due_date,
+			first_seen + CASE severity
+				WHEN 'critical' THEN INTERVAL '7 days'
+				WHEN 'high' THEN INTERVAL '30 days'
+				WHEN 'medium' THEN INTERVAL '60 days'
+				ELSE INTERVAL '90 days'
+			END
+		) < NOW())`)
+	}
 
 	if search := q.Get("search"); search != "" {
 		args = append(args, "%"+search+"%")
@@ -396,7 +505,7 @@ func (h *Handlers) ListFindings(w http.ResponseWriter, r *http.Request) {
 	dataQuery := fmt.Sprintf(`
 		SELECT id, source_tool, source_vendor, external_id, severity, title,
 		       description, affected_asset, first_seen, last_seen, status,
-		       raw_payload, ingested_at, source_file_id
+		       assignee, due_date, note, raw_payload, ingested_at, source_file_id
 		FROM findings %s
 		ORDER BY ingested_at DESC, severity DESC
 		LIMIT $%d OFFSET $%d`, where, argN, argN+1)
@@ -416,7 +525,7 @@ func (h *Handlers) ListFindings(w http.ResponseWriter, r *http.Request) {
 			&f.ID, &f.SourceTool, &f.SourceVendor, &f.ExternalID,
 			&f.Severity, &f.Title, &f.Description, &f.AffectedAsset,
 			&f.FirstSeen, &f.LastSeen, &f.Status,
-			&rawJSON, &f.IngestedAt, &f.SourceFileID,
+			&f.Assignee, &f.DueDate, &f.Note, &rawJSON, &f.IngestedAt, &f.SourceFileID,
 		)
 		if err != nil {
 			continue
@@ -424,6 +533,7 @@ func (h *Handlers) ListFindings(w http.ResponseWriter, r *http.Request) {
 		if rawJSON != nil {
 			json.Unmarshal(rawJSON, &f.RawPayload)
 		}
+		remediation.ApplySLA(&f, time.Now())
 		findings = append(findings, f)
 	}
 
@@ -443,19 +553,7 @@ func (h *Handlers) GetFinding(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var f models.Finding
-	var rawJSON []byte
-	err = h.db.QueryRow(r.Context(),
-		`SELECT id, source_tool, source_vendor, external_id, severity, title,
-		        description, affected_asset, first_seen, last_seen, status,
-		        raw_payload, ingested_at, source_file_id
-		 FROM findings WHERE id = $1`, id,
-	).Scan(
-		&f.ID, &f.SourceTool, &f.SourceVendor, &f.ExternalID,
-		&f.Severity, &f.Title, &f.Description, &f.AffectedAsset,
-		&f.FirstSeen, &f.LastSeen, &f.Status,
-		&rawJSON, &f.IngestedAt, &f.SourceFileID,
-	)
+	f, err := remediation.New(h.db).Get(r.Context(), id)
 	if err == pgx.ErrNoRows {
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found"})
 		return
@@ -464,10 +562,30 @@ func (h *Handlers) GetFinding(w http.ResponseWriter, r *http.Request) {
 		h.serverErr(w, err)
 		return
 	}
-	if rawJSON != nil {
-		json.Unmarshal(rawJSON, &f.RawPayload)
-	}
 	writeJSON(w, http.StatusOK, f)
+}
+
+func (h *Handlers) UpdateFindingWorkflow(w http.ResponseWriter, r *http.Request) {
+	id, err := uuid.Parse(r.PathValue("id"))
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid id"})
+		return
+	}
+	var update remediation.Update
+	if err := json.NewDecoder(r.Body).Decode(&update); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		return
+	}
+	finding, err := remediation.New(h.db).Update(r.Context(), id, update)
+	if err == pgx.ErrNoRows {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found"})
+		return
+	}
+	if err != nil {
+		h.serverErr(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, finding)
 }
 
 func (h *Handlers) ListSources(w http.ResponseWriter, r *http.Request) {

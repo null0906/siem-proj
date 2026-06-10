@@ -17,6 +17,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/seccomply/seccomply/internal/activity"
+	"github.com/seccomply/seccomply/internal/alerting"
+	"github.com/seccomply/seccomply/internal/assets"
 	"github.com/seccomply/seccomply/internal/models"
 	"github.com/seccomply/seccomply/internal/parsers"
 	"github.com/xuri/excelize/v2"
@@ -84,6 +87,11 @@ func (w *Watcher) poll(ctx context.Context) {
 }
 
 func (w *Watcher) processFile(ctx context.Context, fullPath, filename string) error {
+	before, err := activity.New(w.db).CaptureState(ctx)
+	if err != nil {
+		w.log.Warn("capture pre-ingest activity state failed", "err", err)
+		before = activity.State{HighRiskAssets: map[string]bool{}}
+	}
 	data, err := os.ReadFile(fullPath)
 	if err != nil {
 		return fmt.Errorf("read file: %w", err)
@@ -102,6 +110,8 @@ func (w *Watcher) processFile(ctx context.Context, fullPath, filename string) er
 	if exists {
 		w.log.Debug("file already processed, skipping", "file", filename)
 		w.moveFile(fullPath, filename)
+		w.refreshAssets(ctx)
+		w.evaluateAlerts(ctx)
 		return nil
 	}
 
@@ -145,6 +155,9 @@ func (w *Watcher) processFile(ctx context.Context, fullPath, filename string) er
 			"vendor", identityParser.VendorName(),
 			"users", len(users),
 		)
+		w.recordActivity(ctx, before, activity.IngestResult{
+			SourceFileID: sfID, Filename: filename, Vendor: identityParser.VendorName(), Rows: len(rows),
+		})
 		w.moveFile(fullPath, filename)
 		return nil
 	}
@@ -178,7 +191,53 @@ func (w *Watcher) processFile(ctx context.Context, fullPath, filename string) er
 	)
 
 	w.moveFile(fullPath, filename)
+	w.refreshAssets(ctx)
+	newCriticals, resolved := findingCounts(findings)
+	w.recordActivity(ctx, before, activity.IngestResult{
+		SourceFileID: sfID, Filename: filename, Vendor: parser.VendorName(), Rows: len(rows),
+		NewFindings: len(findings), NewCriticals: newCriticals, Resolved: resolved,
+	})
+	w.evaluateAlerts(ctx)
 	return nil
+}
+
+func findingCounts(findings []models.Finding) (criticals, resolved int) {
+	for _, finding := range findings {
+		if finding.Severity == models.SeverityCritical {
+			criticals++
+		}
+		if finding.Status == models.StatusResolved {
+			resolved++
+		}
+	}
+	return criticals, resolved
+}
+
+func (w *Watcher) recordActivity(ctx context.Context, before activity.State, result activity.IngestResult) {
+	if err := activity.New(w.db).RecordIngest(ctx, before, result); err != nil {
+		w.log.Warn("post-ingest activity recording failed", "err", err)
+	}
+}
+
+func (w *Watcher) refreshAssets(ctx context.Context) {
+	if err := assets.New(w.db).Refresh(ctx); err != nil {
+		w.log.Warn("post-ingest asset refresh failed", "err", err)
+		return
+	}
+	w.log.Info("post-ingest asset refresh complete")
+}
+
+func (w *Watcher) evaluateAlerts(ctx context.Context) {
+	result, err := alerting.New(w.db).Evaluate(ctx, alerting.TriggerOnIngest)
+	if err != nil {
+		w.log.Warn("post-ingest alert evaluation failed", "err", err)
+		return
+	}
+	w.log.Info("post-ingest alert evaluation complete",
+		"fired", result.Fired,
+		"resolved", result.AutoResolved,
+		"suppressed", result.Suppressed,
+	)
 }
 
 func readFile(path string, data []byte) (headers []string, rows [][]string, err error) {

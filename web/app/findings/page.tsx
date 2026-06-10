@@ -1,19 +1,20 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   createColumnHelper,
   flexRender,
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { useQuery } from "@tanstack/react-query";
-import { Drawer, Pagination, ScrollArea, Select, TextInput } from "@mantine/core";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Button, Drawer, Pagination, ScrollArea, Select, Textarea, TextInput } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { apiClient, Finding, FindingsResponse } from "@/lib/api";
 import { SeverityPill } from "@/components/SeverityPill";
 
 const PAGE_SIZE = 50;
+const CURRENT_USER = "security@seccomply.demo";
 const columnHelper = createColumnHelper<Finding>();
 
 const sourceOptions = [
@@ -58,14 +59,35 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+function SLABadge({ status }: { status: string }) {
+  const colors: Record<string, string> = {
+    breached: "#ff3b3b",
+    due_soon: "#f7c948",
+    on_track: "#00ff88",
+    closed: "#54657d",
+  };
+  return <span className={`finding-sla finding-sla-${status}`} style={{ color: colors[status] ?? colors.closed }}>{status.replace("_", " ")}</span>;
+}
+
 export default function FindingsPage() {
   const [severity, setSeverity] = useState<string | null>(null);
   const [source, setSource] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [myQueue, setMyQueue] = useState(false);
+  const [overdue, setOverdue] = useState(false);
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Finding | null>(null);
   const [opened, { open, close }] = useDisclosure(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setSeverity(params.get("severity"));
+    setSource(params.get("source_tool"));
+    setStatus(params.get("status"));
+    setSearch(params.get("search") ?? "");
+    setPage(1);
+  }, []);
 
   const params = useMemo(
     () => ({
@@ -73,10 +95,12 @@ export default function FindingsPage() {
       source_tool: source ?? undefined,
       status: status ?? undefined,
       search,
+      assignee: myQueue ? CURRENT_USER : undefined,
+      overdue: overdue ? "true" : undefined,
       page,
       limit: PAGE_SIZE,
     }),
-    [severity, source, status, search, page]
+    [severity, source, status, search, myQueue, overdue, page]
   );
 
   const { data, isLoading } = useQuery<FindingsResponse>({
@@ -148,6 +172,16 @@ export default function FindingsPage() {
         header: "Status",
         size: 80,
         cell: (info) => <StatusBadge status={info.getValue()} />,
+      }),
+      columnHelper.accessor("sla_status", {
+        header: "SLA",
+        size: 100,
+        cell: (info) => <SLABadge status={info.getValue()} />,
+      }),
+      columnHelper.accessor("assignee", {
+        header: "Owner",
+        size: 150,
+        cell: (info) => <span className="finding-owner-cell">{info.getValue() || "Unassigned"}</span>,
       }),
       columnHelper.accessor("first_seen", {
         header: "First seen",
@@ -240,7 +274,7 @@ export default function FindingsPage() {
           placeholder="Status"
           value={status}
           onChange={(value) => resetPage(() => setStatus(value))}
-          data={["open", "resolved", "suppressed"]}
+          data={["open", "in_progress", "resolved", "risk_accepted", "suppressed"]}
           size="xs"
           clearable
           style={{ width: 132 }}
@@ -252,6 +286,12 @@ export default function FindingsPage() {
           size="xs"
           style={{ width: 260 }}
         />
+        <button type="button" className={myQueue ? "finding-filter-toggle active" : "finding-filter-toggle"} onClick={() => resetPage(() => setMyQueue(!myQueue))}>
+          My queue
+        </button>
+        <button type="button" className={overdue ? "finding-filter-toggle active overdue" : "finding-filter-toggle"} onClick={() => resetPage(() => setOverdue(!overdue))}>
+          Overdue
+        </button>
       </div>
 
       <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
@@ -361,28 +401,84 @@ export default function FindingsPage() {
           body: { padding: 0 },
         }}
       >
-        {selected && <FindingDetail finding={selected} />}
+        {selected && <FindingDetail finding={selected} onUpdated={setSelected} />}
       </Drawer>
     </div>
   );
 }
 
-function FindingDetail({ finding }: { finding: Finding }) {
+function FindingDetail({ finding, onUpdated }: { finding: Finding; onUpdated: (finding: Finding) => void }) {
+  const queryClient = useQueryClient();
+  const { data: detail } = useQuery({
+    queryKey: ["finding", finding.id],
+    queryFn: () => apiClient.getFinding(finding.id),
+  });
+  const current = detail ?? finding;
+  const [assignee, setAssignee] = useState(current.assignee ?? "");
+  const [status, setStatus] = useState(current.status);
+  const [dueDate, setDueDate] = useState(current.due_date ? current.due_date.slice(0, 16) : "");
+  const [note, setNote] = useState("");
+  useEffect(() => {
+    setAssignee(current.assignee ?? "");
+    setStatus(current.status);
+    setDueDate(current.due_date ? current.due_date.slice(0, 16) : "");
+  }, [current.assignee, current.status, current.due_date]);
+  const update = useMutation({
+    mutationFn: () => apiClient.updateFindingWorkflow(current.id, {
+      actor: CURRENT_USER,
+      assignee,
+      status,
+      ...(dueDate ? { due_date: new Date(dueDate).toISOString() } : {}),
+      ...(note.trim() ? { note: note.trim() } : {}),
+    }),
+    onSuccess: (updated) => {
+      onUpdated(updated);
+      setNote("");
+      queryClient.setQueryData(["finding", finding.id], updated);
+      queryClient.invalidateQueries({ queryKey: ["findings"] });
+    },
+  });
   const metadata = [
-    { label: "Vendor", value: finding.source_vendor || "unknown", mono: false },
-    { label: "Asset", value: finding.affected_asset || "unknown", mono: true },
-    { label: "First seen", value: new Date(finding.first_seen).toLocaleString(), mono: true },
-    { label: "Last seen", value: new Date(finding.last_seen).toLocaleString(), mono: true },
-    { label: "Source file", value: finding.source_file_id ?? "unknown", mono: true },
+    { label: "Vendor", value: current.source_vendor || "unknown", mono: false },
+    { label: "Asset", value: current.affected_asset || "unknown", mono: true },
+    { label: "First seen", value: new Date(current.first_seen).toLocaleString(), mono: true },
+    { label: "Last seen", value: new Date(current.last_seen).toLocaleString(), mono: true },
+    { label: "SLA due", value: new Date(current.sla_due_at).toLocaleString(), mono: true },
+    { label: "Source file", value: current.source_file_id ?? "unknown", mono: true },
   ];
 
   return (
     <ScrollArea h="calc(100vh - 64px)">
       <div style={{ padding: 18 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-          <SeverityPill severity={finding.severity} />
-          <StatusBadge status={finding.status} />
+          <SeverityPill severity={current.severity} />
+          <StatusBadge status={current.status} />
+          <SLABadge status={current.sla_status} />
         </div>
+
+        <section className="finding-workflow">
+          <div className="finding-detail-heading">Remediation workflow</div>
+          <div className="finding-workflow-grid">
+            <TextInput label="Owner" value={assignee} onChange={(event) => setAssignee(event.currentTarget.value)} placeholder="owner@company.com" size="xs" />
+            <Select label="Status" value={status} onChange={(value) => setStatus(value ?? "open")} data={["open", "in_progress", "resolved", "risk_accepted"]} size="xs" />
+            <TextInput label="Due date" type="datetime-local" value={dueDate} onChange={(event) => setDueDate(event.currentTarget.value)} size="xs" />
+          </div>
+          <Textarea label="Add note" value={note} onChange={(event) => setNote(event.currentTarget.value)} minRows={2} size="xs" />
+          <Button className="finding-workflow-save" size="xs" loading={update.isPending} onClick={() => update.mutate()}>Save workflow</Button>
+          {update.isError ? <div className="finding-workflow-error">Could not save workflow changes.</div> : null}
+        </section>
+
+        <section className="finding-audit">
+          <div className="finding-detail-heading">Audit trail</div>
+          {(current.events ?? []).map((event) => (
+            <div className="finding-audit-event" key={event.id}>
+              <span>{event.event_type.replaceAll("_", " ")}</span>
+              <strong>{event.note || event.to_value || "Updated"}</strong>
+              <small>{event.actor} · {new Date(event.created_at).toLocaleString()}</small>
+            </div>
+          ))}
+          {(current.events ?? []).length === 0 ? <div className="finding-audit-empty">No workflow changes yet.</div> : null}
+        </section>
 
         <div
           style={{
@@ -452,7 +548,7 @@ function FindingDetail({ finding }: { finding: Finding }) {
             whiteSpace: "pre-wrap",
           }}
         >
-          {JSON.stringify(finding.raw_payload ?? {}, null, 2)}
+          {JSON.stringify(current.raw_payload ?? {}, null, 2)}
         </pre>
       </div>
     </ScrollArea>

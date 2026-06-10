@@ -6,6 +6,9 @@ import { Skeleton } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient, FindingsSummary } from "@/lib/api";
 import { CYBER, SEV } from "@/lib/colors";
+import { PostureScorePanel } from "@/components/PostureScorePanel";
+import { ActionQueueCard } from "@/components/ActionQueueCard";
+import { ActivitySummaryStrip } from "@/components/ActivitySummaryStrip";
 
 const TrendChart = dynamic(() => import("@/components/charts/TrendChart"), { ssr: false });
 const SourceDonut = dynamic(() => import("@/components/charts/SourceDonut"), { ssr: false });
@@ -50,6 +53,24 @@ export default function OverviewPage() {
 
   const summary = data ?? emptySummary;
   const loading = isLoading && !data;
+  const { data: posture, isLoading: postureLoading } = useQuery({
+    queryKey: ["posture-summary"],
+    queryFn: apiClient.getPostureSummary,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  });
+  const { data: actions, isLoading: actionsLoading } = useQuery({
+    queryKey: ["actions"],
+    queryFn: apiClient.getActions,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  });
+  const { data: activity } = useQuery({
+    queryKey: ["activity", 7],
+    queryFn: () => apiClient.getActivity(7, 10),
+    staleTime: 15_000,
+    refetchInterval: 30_000,
+  });
 
   return (
     <div style={{ padding: "18px 20px 24px", flex: 1, overflow: "auto" }}>
@@ -81,6 +102,16 @@ export default function OverviewPage() {
           {isFetching && !loading ? <span> · refreshing</span> : null}
         </p>
       </header>
+
+      {activity ? <ActivitySummaryStrip feed={activity} /> : null}
+
+      <PostureScorePanel data={posture} loading={postureLoading && !posture} />
+
+      {actionsLoading || !actions ? (
+        <Skeleton height={210} radius={0} style={{ marginBottom: 12 }} />
+      ) : (
+        <div style={{ marginBottom: 12 }}><ActionQueueCard queue={actions} compact /></div>
+      )}
 
       <section className="overview-metrics-grid" style={{ marginBottom: 12 }}>
         {loading ? (

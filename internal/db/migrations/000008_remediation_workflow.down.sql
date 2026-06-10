@@ -1,0 +1,1 @@
+-- PostgreSQL enum values are intentionally retained on rollback.
